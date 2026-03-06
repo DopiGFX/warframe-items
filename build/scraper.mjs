@@ -261,42 +261,77 @@ class Scraper {
   }
 
   /**
-   * Formatted date string. Format: "YYYY MM DD"
-   * @typedef {string} OggDateStamp
-   */
-  /**
-   * @typedef {Object} OggRelic
-   * @property {string<module:warframe-items.Rarity>} Rarity
-   * @property {string} Name relic name, format: "%RelicEra% %Identifier%"
-   * @property {boolean} Vaulted whether or not the relic is vaulted
-   */
-  /**
-   * @typedef {Object} OggComponent
-   * @property {string} Name component name
-   * @property {Array<OggRelic>} Relics relics that can drop this component
-   * @property {number} Ducats sell price in ducats
-   */
-  /**
-   * @typedef {Object} VaultDataItem
-   * @property {boolean} Vaulted whether the item is vaulted
-   * @property {string<OggDateStamp>} ReleaseDate Ogg-date-formatted date stamp
-   * @property {Array<OggComponent>} Components
-   * @property {string<OggDateStamp>} EstimatedVaultedDate estimated date for the vault date
-   * @property {string<OggDateStamp>} VaultedDate actual vault date
+   * Formatted date string. Format: "YYYY-MM-DD"
+   * @typedef {string} VaultDateStamp
    */
   /**
    * @typedef {Object} VaultData
-   * @property {{code: number}} metadata
-   * @property {Array<VaultDataItem>} data
+   * @property {string} name name of the vaulted item
+   * @property {boolean} vaulted whether the item is vaulted or not
+   * @property {VaultDateStamp} estimatedVaultDate estimated vault date
+   * @property {VaultDateStamp} [vaultDate] vault date, only available if the item is vaulted
    */
   /**
-   * Get (estimated) vault dates from ducats or plat.
-   * @returns {VaultData}
+   * Get (estimated) vault dates from wiki.
+   * @returns {Array<VaultData>}
    */
   async fetchVaultData() {
     const bar = new Progress('Fetching Vault Data', 1);
-    const vaultData = (await getJSON('http://www.oggtechnologies.com/api/ducatsorplat/v2/MainItemData.json', true))
-      .data;
+    const vaultInfoWikia = await get('https://wiki.warframe.com/w/Prime_Vault', true, true);
+    const $ = load(vaultInfoWikia);
+    // Since data attributes are generated aferwards, we cannot rely on them to find the tables containing vaulted items
+    const tables = $('#mw-customcollapsible-vaulted > div > div > table').toArray();
+    const [vaultedItems, formerlyVaulted, notYetVaulted, neverVaulted] = tables;
+    if (!vaultedItems || !formerlyVaulted || !notYetVaulted || !neverVaulted) {
+      console.error('Could not find the tables containing vaulted items.');
+      return [];
+    }
+    const vaultData = [];
+
+    function extractVaultedItems(row) {
+      const $row = $(row);
+      // For some reason, the first row of each table contains the column headers
+      if ($row.find('th').length) {
+        return;
+      }
+      const name =
+        $row.find('td:nth-child(1) > span').attr('data-param-name') ?? $row.find('td:nth-child(1) > a').text().trim();
+      const vaultDate = $row.find('td:nth-child(2)').text().trim() ?? '';
+      if (name && vaultDate) {
+        vaultData.push({ name, vaulted: true, vaultDate, estimatedVaultDate: vaultDate });
+      }
+    }
+
+    function extractNotVaultedItems(row) {
+      const $row = $(row);
+      // For some reason, the first row of each table contains the column headers
+      if ($row.find('th').length) {
+        return;
+      }
+      const name =
+        $row.find('td:nth-child(1) > span').attr('data-param-name') ?? $row.find('td:nth-child(1) > a').text().trim();
+      if (name) {
+        vaultData.push({ name, vaulted: false });
+      }
+    }
+
+    // We want this items to be listed as vaulted, but they are not listed on the wiki page
+    vaultData.push({ name: 'Excalibur Prime', vaulted: true });
+    vaultData.push({ name: 'Lato Prime', vaulted: true });
+    vaultData.push({ name: 'Skana Prime', vaulted: true });
+
+    $(vaultedItems)
+      .find('tbody > tr')
+      .each((_, row) => extractVaultedItems(row));
+    $(formerlyVaulted)
+      .find('tbody > tr')
+      .each((_, row) => extractVaultedItems(row));
+    $(notYetVaulted)
+      .find('tbody > tr')
+      .each((_, row) => extractNotVaultedItems(row));
+    $(neverVaulted)
+      .find('tbody > tr')
+      .each((_, row) => extractNotVaultedItems(row));
 
     bar.tick();
     return vaultData;
