@@ -92,7 +92,6 @@ const dropMap = (drop) => {
  * @property {Array<DropRate>} drops drop rates
  * @property {PatchlogWrap} patchlogs patch data
  * @property {WikiaData} wikia warframe wikia data
- * @property {Array<VaultData>} vaultData vault wikia data
  * @property {Array<module:@wfcd/relics.TitaniaRelic>} relics Generated relic data
  * @property {Array<Partial<Item>>} i18n i18n data
  */
@@ -198,7 +197,7 @@ class Parser {
     this.addPatchlogs(result, data.patchlogs);
     this.addAdditionalWikiaData(result, category, data.wikia);
     this.addIsPrime(result);
-    this.addVaultData(result, data.vaultData, category, data.wikia);
+    this.addVaultData(result, category, data.wikia);
     this.addResistanceData(result, category);
     this.addRelics(result, data.relics, data.drops);
     this.applyMasterable(result);
@@ -224,8 +223,7 @@ class Parser {
     this.sanitize(result);
     this.addImageName(result, data.manifest, previous);
     this.addCategory(result, category);
-
-    this.addVaultData(result, data.vaultData, category, data.wikia);
+    this.addVaultData(result, category, data.wikia);
 
     return result;
   }
@@ -1046,11 +1044,10 @@ class Parser {
    * Adds releaseDate, vaultDate and estimatedVaultDate to all primes using
    * data from "Ducats or Plat".
    * @param {Item} item data to append vault data to
-   * @param {Array<VaultData>} vaultData to look up data for the {@param item}
    * @param {module:warframe-items.Category} category of the data
    * @param {WikiaData} wikiaData from wikia to apply
    */
-  addVaultData(item, vaultData, category, wikiaData) {
+  addVaultData(item, category, wikiaData) {
     let vaultCategory = category;
     if (item.type === 'Archwing') vaultCategory = 'archwings';
 
@@ -1059,7 +1056,7 @@ class Parser {
 
     if (vaultCategory === 'Sentinels') vaultCategory = 'companions';
     const wikiaItem = wikiaData[vaultCategory.toLowerCase()].filter((i) => i).find((i) => i.name === item.name);
-    const target = vaultData.find((i) => i.name.toLowerCase() === item.name.toLowerCase());
+    const target = wikiaData.vaultData.find((i) => i.name.toLowerCase() === item.name.toLowerCase());
 
     if (!target && !wikiaItem) {
       const isManuallyExcluded = primeExcludeRegex.test(item.name);

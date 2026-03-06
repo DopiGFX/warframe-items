@@ -10,6 +10,7 @@ import CompanionScraper from './wikia/scrapers/CompanionScraper.mjs';
 import ModScraper from './wikia/scrapers/ModScraper.mjs';
 import WeaponScraper from './wikia/scrapers/WeaponScraper.mjs';
 import WarframeScraper from './wikia/scrapers/WarframeScraper.mjs';
+import VaultScraper from './wikia/scrapers/VaultScraper.mjs';
 import VersionScraper from './wikia/scrapers/VersionScraper.mjs';
 import readJson from './readJson.mjs';
 import { get, getJSON, retryAttempts } from './network.mjs';
@@ -215,13 +216,14 @@ class Scraper {
    * @property {Array<WikiaVersions>} versions
    * @property {Array<WikiaDucats>} ducats
    * @property {Array<WikiaArcanes>} arcanes
+   * @property {Array<VaultData>} vaultData
    */
   /**
    * Get additional data from wikia if it's not provided in the API
    * @returns {WikiaData}
    */
   async fetchWikiaData() {
-    const bar = new Progress('Fetching Wikia Data', 8);
+    const bar = new Progress('Fetching Wikia Data', 9);
     const ducats = [];
     const ducatsWikia = await get('https://wiki.warframe.com/w/Ducats/Prices/All', true);
     const $ = load(ducatsWikia);
@@ -247,6 +249,8 @@ class Scraper {
     bar.tick();
     const companions = await new CompanionScraper().scrape();
     bar.tick();
+    const vaultData = await new VaultScraper().scrape();
+    bar.tick();
 
     return {
       weapons,
@@ -257,84 +261,8 @@ class Scraper {
       archwings,
       companions,
       arcanes,
+      vaultData,
     };
-  }
-
-  /**
-   * Formatted date string. Format: "YYYY-MM-DD"
-   * @typedef {string} VaultDateStamp
-   */
-  /**
-   * @typedef {Object} VaultData
-   * @property {string} name name of the vaulted item
-   * @property {boolean} vaulted whether the item is vaulted or not
-   * @property {VaultDateStamp} [estimatedVaultDate] estimated vault date
-   * @property {VaultDateStamp} [vaultDate] vault date, only available if the item is vaulted
-   */
-  /**
-   * Get (estimated) vault dates from wiki.
-   * @returns {Array<VaultData>}
-   */
-  async fetchVaultData() {
-    const bar = new Progress('Fetching Vault Data', 1);
-    const vaultInfoWikia = await get('https://wiki.warframe.com/w/Prime_Vault', true, true);
-    const $ = load(vaultInfoWikia);
-    // Since data attributes are generated aferwards, we cannot rely on them to find the tables containing vaulted items
-    const tables = $('#mw-customcollapsible-vaulted > div > div > table').toArray();
-    const [vaultedItems, formerlyVaulted, notYetVaulted, neverVaulted] = tables;
-    if (!vaultedItems || !formerlyVaulted || !notYetVaulted || !neverVaulted) {
-      console.error('Could not find the tables containing vaulted items.');
-      return [];
-    }
-    const vaultData = [];
-
-    function extractVaultedItems(row) {
-      const $row = $(row);
-      // For some reason, the first row of each table contains the column headers
-      if ($row.find('th').length) {
-        return;
-      }
-      const name =
-        $row.find('td:nth-child(1) > span').attr('data-param-name') ?? $row.find('td:nth-child(1) > a').text().trim();
-      const vaultDate = $row.find('td:nth-child(2)').text().trim() ?? '';
-      if (name && vaultDate) {
-        vaultData.push({ name, vaulted: true, vaultDate, estimatedVaultDate: vaultDate });
-      }
-    }
-
-    function extractNotVaultedItems(row) {
-      const $row = $(row);
-      // For some reason, the first row of each table contains the column headers
-      if ($row.find('th').length) {
-        return;
-      }
-      const name =
-        $row.find('td:nth-child(1) > span').attr('data-param-name') ?? $row.find('td:nth-child(1) > a').text().trim();
-      if (name) {
-        vaultData.push({ name, vaulted: false });
-      }
-    }
-
-    // We want this items to be listed as vaulted, but they are not listed on the wiki page
-    vaultData.push({ name: 'Excalibur Prime', vaulted: true });
-    vaultData.push({ name: 'Lato Prime', vaulted: true });
-    vaultData.push({ name: 'Skana Prime', vaulted: true });
-
-    $(vaultedItems)
-      .find('tbody > tr')
-      .each((_, row) => extractVaultedItems(row));
-    $(formerlyVaulted)
-      .find('tbody > tr')
-      .each((_, row) => extractVaultedItems(row));
-    $(notYetVaulted)
-      .find('tbody > tr')
-      .each((_, row) => extractNotVaultedItems(row));
-    $(neverVaulted)
-      .find('tbody > tr')
-      .each((_, row) => extractNotVaultedItems(row));
-
-    bar.tick();
-    return vaultData;
   }
 
   /**
