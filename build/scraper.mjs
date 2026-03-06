@@ -13,6 +13,7 @@ import WarframeScraper from './wikia/scrapers/WarframeScraper.mjs';
 import VaultScraper from './wikia/scrapers/VaultScraper.mjs';
 import VersionScraper from './wikia/scrapers/VersionScraper.mjs';
 import readJson from './readJson.mjs';
+import sleep from './sleep.mjs';
 import { get, getJSON, retryAttempts } from './network.mjs';
 
 const locales = await readJson(new URL('../config/locales.json', import.meta.url));
@@ -235,20 +236,28 @@ class Scraper {
     });
     bar.tick();
 
+    await sleep(100);
     const weapons = await new WeaponScraper().scrape();
     bar.tick();
+    await sleep(100);
     const warframes = await new WarframeScraper().scrape();
     bar.tick();
+    await sleep(100);
     const mods = await new ModScraper().scrape();
     bar.tick();
+    await sleep(100);
     const arcanes = await new ArcaneScraper().scrape();
     bar.tick();
+    await sleep(100);
     const versions = await new VersionScraper().scrape();
     bar.tick();
+    await sleep(100);
     const archwings = await new ArchwingScraper().scrape();
     bar.tick();
+    await sleep(100);
     const companions = await new CompanionScraper().scrape();
     bar.tick();
+    await sleep(100);
     const vaultData = await new VaultScraper().scrape();
     bar.tick();
 
