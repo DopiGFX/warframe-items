@@ -92,7 +92,7 @@ const dropMap = (drop) => {
  * @property {Array<DropRate>} drops drop rates
  * @property {PatchlogWrap} patchlogs patch data
  * @property {WikiaData} wikia warframe wikia data
- * @property {VaultData} vaultData Ogg vault data
+ * @property {Array<VaultData>} vaultData vault wikia data
  * @property {Array<module:@wfcd/relics.TitaniaRelic>} relics Generated relic data
  * @property {Array<Partial<Item>>} i18n i18n data
  */

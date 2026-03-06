@@ -268,7 +268,7 @@ class Scraper {
    * @typedef {Object} VaultData
    * @property {string} name name of the vaulted item
    * @property {boolean} vaulted whether the item is vaulted or not
-   * @property {VaultDateStamp} estimatedVaultDate estimated vault date
+   * @property {VaultDateStamp} [estimatedVaultDate] estimated vault date
    * @property {VaultDateStamp} [vaultDate] vault date, only available if the item is vaulted
    */
   /**
