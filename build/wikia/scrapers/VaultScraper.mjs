@@ -25,8 +25,7 @@ export default class VaultScraper {
     const tables = $('#mw-customcollapsible-vaulted > div > div > table').toArray();
     const [vaultedItems, formerlyVaulted, notYetVaulted, neverVaulted] = tables;
     if (!vaultedItems || !formerlyVaulted || !notYetVaulted || !neverVaulted) {
-      console.error('Could not find the tables containing vaulted items.');
-      return [];
+      throw new Error('Could not find the tables containing vaulted items on wiki page.');
     }
     const vaultData = [];
 
